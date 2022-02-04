@@ -17,8 +17,35 @@
 <body>
     <div>
         <div class="result">Zoom Meeting</div>
-        <img id="imageSrc" src="./image.png" style="display: none;" />
-        <canvas id="canvas"></canvas>
+        <!-- <img id="imageSrc" src="./image.png" style="display: none;" /> -->
+        <img id="imageSrc" src="./image5.png" />
+        <canvas id="canvas1"></canvas>
+        <canvas id="canvas2"></canvas>
+        <div class="slidercontainer">
+            LH: <input type="range" min="0" max="255" value="0" class="slider" id="LH">
+            <p><span id="valueLH"></span></p>
+        </div>
+        <div class="slidercontainer">
+            LS: <input type="range" min="0" max="255" value="0" class="slider" id="LS">
+            <p><span id="valueLS"></span></p>
+        </div>
+        <div class="slidercontainer">
+            LV: <input type="range" min="0" max="255" value="0" class="slider" id="LV">
+            <p><span id="valueLV"></span></p>
+        </div>
+        <div class="slidercontainer">
+            HH: <input type="range" min="0" max="180" value="180" class="slider" id="HH">
+            <p><span id="valueHH"></span></p>
+        </div>
+        <div class="slidercontainer">
+            HS: <input type="range" min="0" max="255" value="255" class="slider" id="HS">
+            <p><span id="valueHS"></span></p>
+        </div>
+        <div class="slidercontainer">
+            HV: <input type="range" min="0" max="255" value="33" class="slider" id="HV">
+            <p><span id="valueHV"></span></p>
+        </div>
+        <div id="submit-button">change</div>
     </div>
     <div>
         <div id="predictions"></div>
@@ -27,20 +54,173 @@
         function onOpenCvReady() {
             cv['onRuntimeInitialized'] = () => {
                 console.log("OpenCV.js is ready")
-                let src = cv.imread('imageSrc')
-                let dst = new cv.Mat()
-                let low = new cv.Mat(src.rows, src.cols, src.type(), lower);
-                let high = new cv.Mat(src.rows, src.cols, src.type(), higher);
-                cv.inRange(src, low, high, dst);
-                cv.imshow('canvas', dst)
-                mat.delete();
+                    // const FPS = 30
+                const FPS = 30
+                let slider_LH = document.getElementById("LH")
+                let slider_LS = document.getElementById("LS")
+                let slider_LV = document.getElementById("LV")
+                let slider_HH = document.getElementById("HH")
+                let slider_HS = document.getElementById("HS")
+                let slider_HV = document.getElementById("HV")
+                let submit_button = document.getElementById("submit-button")
+                submit_button.addEventListener("click", processPhoto)
+                slider_LH.addEventListener("change", processPhoto)
+                slider_LS.addEventListener("change", processPhoto)
+                slider_LV.addEventListener("change", processPhoto)
+                slider_HH.addEventListener("change", processPhoto)
+                slider_HS.addEventListener("change", processPhoto)
+                slider_HV.addEventListener("change", processPhoto)
 
 
+                function processPhoto() {
+                    console.log('processphoto')
+                    let begin = Date.now()
+                    let LH = parseFloat(slider_LH.value)
+                    let LS = parseFloat(slider_LS.value)
+                    let LV = parseFloat(slider_LV.value)
+                    let HH = parseFloat(slider_HH.value)
+                    let HS = parseFloat(slider_HS.value)
+                    let HV = parseFloat(slider_HV.value)
+                    let src = cv.imread('imageSrc')
+                    let hsv = new cv.Mat(src.rows, src.cols, cv.CV_8UC3)
+                    let dst = new cv.Mat(src.rows, src.cols, cv.CV_8UC3)
+                    let lower = [LH, LS, LV, 0];
+                    let higher = [HH, HS, HV, 0];
+                    console.log(lower)
+                    console.log(higher)
+                    let low = new cv.Mat(dst.rows, dst.cols, dst.type(), lower);
+                    let high = new cv.Mat(dst.rows, dst.cols, dst.type(), higher);
+                    cv.cvtColor(src, hsv, cv.COLOR_BGR2HSV)
+                    cv.inRange(hsv, low, high, dst);
+                    let vertical_hsv = new cv.Mat(dst.rows, 1, cv.CV_8UC1)
+                    let vertical_rng = new cv.Mat(dst.rows, 1, cv.CV_8UC1)
+                    let horizontal_hsv = new cv.Mat(dst.rows, 1, cv.CV_8UC1)
+                    let horizontal_rng = new cv.Mat(dst.rows, 1, cv.CV_8UC1)
+                    let black_count = 0
+                    let last_is_most_black_vertical = false
+                    let last_is_most_black_horizontal = false
+                    let vertical_line_count = 0
+                    let horizontal_line_count = 0
+                    let vertical_line_array = []
+                    let horizontal_line_array = []
+                    for (let i = 0; i < hsv.cols; i++) {
+                        let detect_rect = new cv.Rect(i, 0, 1, hsv.rows)
+                        vertical_hsv = hsv.roi(detect_rect)
+                        let vertical_lower = [0, 0, 0, 0];
+                        let vertical_higher = [180, 255, 33, 0]
+                        let vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                        let vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
+                        cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                        black_count = cv.countNonZero(vertical_rng)
+                        if (black_count > vertical_rng.rows * 0.75) {
+                            if (!last_is_most_black_vertical) {
+                                vertical_line_count++;
+                                vertical_line_array.push(i)
+                            }
+                            last_is_most_black_vertical = true
+                        } else if (last_is_most_black_vertical) {
+                            vertical_line_count++;
+                            vertical_line_array.push(i)
+                            last_is_most_black_vertical = false
+                        } else {
+                            last_is_most_black_vertical = false
+                        }
+                    }
+                    for (let i = 0; i < hsv.rows; i++) {
+                        let detect_rect = new cv.Rect(0, i, hsv.cols, 1)
+                        horizontal_hsv = hsv.roi(detect_rect)
+                        let horizontal_lower = [0, 0, 0, 0];
+                        let horizontal_higher = [180, 255, 33, 0]
+                        let horizontal_low = new cv.Mat(horizontal_hsv.rows, horizontal_hsv.cols, horizontal_hsv.type(), horizontal_lower);
+                        let horizontal_high = new cv.Mat(horizontal_hsv.rows, horizontal_hsv.cols, horizontal_hsv.type(), horizontal_higher);
+                        cv.inRange(horizontal_hsv, horizontal_low, horizontal_high, horizontal_rng)
+                        black_count = cv.countNonZero(horizontal_rng)
+                        if (black_count > horizontal_rng.cols * 0.75) {
+                            if (!last_is_most_black_horizontal) {
+                                horizontal_line_count++;
+                                horizontal_line_array.push(i)
+                            }
+                            last_is_most_black_horizontal = true
+                        } else if (last_is_most_black_horizontal) {
+                            horizontal_line_count++;
+                            horizontal_line_array.push(i)
+                            last_is_most_black_horizontal = false
+                        } else {
+                            last_is_most_black_horizontal = false
+                        }
+                    }
+                    console.log(vertical_line_count)
+                    console.log(horizontal_line_count)
+                    let color = new cv.Scalar(255, 255, 0, 255)
+                    for (let i = 0; i < vertical_line_array.length; i++) {
+                        let line_pt1 = new cv.Point(vertical_line_array[i], 0)
+                        let line_pt2 = new cv.Point(vertical_line_array[i], hsv.rows)
+                        cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
+                    }
+                    for (let i = 0; i < horizontal_line_array.length; i++) {
+                        let line_pt1 = new cv.Point(0, horizontal_line_array[i])
+                        let line_pt2 = new cv.Point(hsv.cols, horizontal_line_array[i])
+                        cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
+                    }
+
+                    let intersect_pts = []
+                    let individual_screens = []
+                    let diff_x = 0;
+                    let diff_y = 0;
+                    let diff_ratio = 0
+
+                    for (let i = 0; i < vertical_line_array.length - 1; i++) {
+                        diff_x = vertical_line_array[i + 1] - vertical_line_array[i]
+                        if (diff_x > (src.cols * 0.1)) {
+                            for (let j = 0; j < horizontal_line_array.length - 1; j++) {
+                                diff_y = horizontal_line_array[j + 1] - horizontal_line_array[j]
+                                diff_ratio = diff_x / diff_y
+
+                                // if (diff_ratio > 1.7 && diff_ratio < 1.9) {
+                                if (diff_ratio > 1.65 && diff_ratio < 1.9) {
+                                    individual_screens.push([
+                                        [vertical_line_array[i], horizontal_line_array[j]],
+                                        [diff_x, diff_y]
+                                    ])
+                                }
+                            }
+                        }
+                    }
+                    let color1 = new cv.Scalar(0, 255, 255, 255)
+
+                    for (let i = 0; i < individual_screens.length; i++) {
+                        let point = new cv.Point(individual_screens[i][0][0], individual_screens[i][0][1])
+                        let screen_rect = new cv.Rect(individual_screens[i][0][0] + 1, individual_screens[i][0][1] + 1, individual_screens[i][1][0] - 1, individual_screens[i][1][1] - 1)
+                        let screen_hsv = new cv.Mat(individual_screens[i][1][1] - 1, individual_screens[i][1][0] - 1, cv.CV_8UC1)
+                        let screen_rng = new cv.Mat(individual_screens[i][1][1] - 1, individual_screens[i][1][0] - 1, cv.CV_8UC1)
+                        screen_hsv = hsv.roi(screen_rect)
+                        let screen_lower = [0, 0, 0, 0];
+                        let screen_higher = [180, 255, 25, 0]
+                        let screen_low = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_lower);
+                        let screen_high = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_higher);
+                        cv.inRange(screen_hsv, screen_low, screen_high, screen_rng)
+                        let black_count = cv.countNonZero(screen_rng)
+                        let black_ratio = black_count / (individual_screens[i][1][0] * individual_screens[i][1][1])
+                        if (black_ratio < 0.95) { // check weather empty screen box
+                            cv.line(src, point, point, color1, 10, cv.LINE_8, 0)
+                        }
+                    }
+
+                    cv.imshow('canvas1', src)
+                    cv.imshow('canvas2', dst)
+                    dst.delete();
+
+
+                    // let delay = 1000 / FPS - (Date.now() - begin)
+                    // setTimeout(processPhoto, delay)
+                }
+
+                processPhoto();
             }
         }
     </script>
-    <script async src="https://docs.opencv.org/master/opencv.js" type="text/javascript" onload="onOpenCvReady()"></script>
-    <!-- <script async src="opencv.js" type="text/javascript" onload="onOpenCvReady()"></script> -->
+    <!-- <script async src="https://docs.opencv.org/master/opencv.js" type="text/javascript" onload="onOpenCvReady()"></script> -->
+    <script async src="opencv.js" type="text/javascript" onload="onOpenCvReady()"></script>
 
 </body>
 
