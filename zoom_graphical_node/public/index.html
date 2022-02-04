@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Zoom meeting</title>
+    <script src="https://cdn.jsdelivr.net/npm/onnxjs/dist/onnx.min.js"></script>
+    <script src="./lib/ndarray-browser-min.js"></script>
+    <script src="./lib/image-loader.js"></script>
+    <script src="./lib/imagenetClasses.js"></script>
+    <style>
+
+    </style>
+    <!-- <link href="index.css" rel="stylesheet"> -->
+</head>
+
+<body>
+    <div>
+        <div class="result">Zoom Meeting</div>
+        <img id="imageSrc" src="./image.png" style="display: none;" />
+        <canvas id="canvas"></canvas>
+    </div>
+    <div>
+        <div id="predictions"></div>
+    </div>
+    <script type="text/javascript">
+        function onOpenCvReady() {
+            cv['onRuntimeInitialized'] = () => {
+                console.log("OpenCV.js is ready")
+                let src = cv.imread('imageSrc')
+                let dst = new cv.Mat()
+                let low = new cv.Mat(src.rows, src.cols, src.type(), lower);
+                let high = new cv.Mat(src.rows, src.cols, src.type(), higher);
+                cv.inRange(src, low, high, dst);
+                cv.imshow('canvas', dst)
+                mat.delete();
+
+
+            }
+        }
+    </script>
+    <script async src="https://docs.opencv.org/master/opencv.js" type="text/javascript" onload="onOpenCvReady()"></script>
+    <!-- <script async src="opencv.js" type="text/javascript" onload="onOpenCvReady()"></script> -->
+
+</body>
+
+</html>
