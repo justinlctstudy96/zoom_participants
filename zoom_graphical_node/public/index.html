@@ -18,7 +18,7 @@
     <div>
         <div class="result">Zoom Meeting</div>
         <!-- <img id="imageSrc" src="./image.png" style="display: none;" /> -->
-        <img id="imageSrc" src="./image.png" />
+        <img id="imageSrc" src="./image7.png" />
         <canvas id="canvas1"></canvas>
         <canvas id="canvas2"></canvas>
         <div class="slidercontainer">
@@ -167,12 +167,12 @@
                     for (let i = 0; i < vertical_line_array.length; i++) {
                         let line_pt1 = new cv.Point(vertical_line_array[i], 0)
                         let line_pt2 = new cv.Point(vertical_line_array[i], hsv.rows)
-                        cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
+                            // cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
                     }
                     for (let i = 0; i < horizontal_line_array.length; i++) {
                         let line_pt1 = new cv.Point(0, horizontal_line_array[i])
                         let line_pt2 = new cv.Point(hsv.cols, horizontal_line_array[i])
-                        cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
+                            // cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
                     }
 
                     let intersect_pts = []
@@ -180,31 +180,65 @@
                     let diff_x = 0;
                     let diff_y = 0;
                     let diff_ratio = 0
+                    let frame_row_count = 0
+                    let frame_average_height = 0
 
-                    for (let i = 0; i < vertical_line_array.length - 1; i++) {
-                        diff_x = vertical_line_array[i + 1] - vertical_line_array[i]
-                        if (diff_x > (src.cols * 0.1)) {
-                            for (let j = 0; j < horizontal_line_array.length - 1; j++) {
-                                diff_y = horizontal_line_array[j + 1] - horizontal_line_array[j]
+                    for (let i = 0; i < horizontal_line_array.length - 1; i++) { // y
+                        diff_y = horizontal_line_array[i + 1] - horizontal_line_array[i]
+                        if (diff_y > (src.rows * 0.1)) {
+                            for (let j = 0; j < vertical_line_array.length - 1; j++) { // x
+                                diff_x = vertical_line_array[j + 1] - vertical_line_array[j]
                                 diff_ratio = diff_x / diff_y
-
-                                // if (diff_ratio > 1.7 && diff_ratio < 1.9) {
+                                    // if (diff_ratio > 1.7 && diff_ratio < 1.9) {
                                 if (diff_ratio > 1.65 && diff_ratio < 1.9) {
+                                    // check whether vertical line is black or green first
+                                    // let detect_rect = new cv.Rect(vertical_line_array[j], horizontal_line_array[i], 1, diff_y) // x, y, x, y
+                                    //     // let detect_rect = new cv.Rect(horizontal_line_array[i], vertical_line_array[j], 1, diff_y)
+                                    // vertical_hsv = hsv.roi(detect_rect)
+                                    // let vertical_lower = [0, 0, 0, 0];
+                                    // let vertical_higher = [180, 255, 33, 0];
+                                    // let vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                                    // let vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                                    // cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                                    // vertical_low.delete();
+                                    // vertical_high.delete();
+                                    // black_count = cv.countNonZero(vertical_rng)
+                                    // vertical_lower = [30, 30, 100, 0];
+                                    // vertical_higher = [90, 255, 255, 0];
+                                    // vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                                    // vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                                    // cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                                    // vertical_low.delete();
+                                    // vertical_high.delete();
+                                    // green_count = cv.countNonZero(vertical_rng)
+
+                                    // console.log(black_count)
+                                    // if ((black_count + green_count) > diff_y * 0.5) {
+                                    console.log(green_count)
+                                    console.log('really')
+                                    frame_row_count++;
                                     individual_screens.push([
-                                        [vertical_line_array[i], horizontal_line_array[j]],
-                                        [diff_x, diff_y]
-                                    ])
+                                            [vertical_line_array[j], horizontal_line_array[i]],
+                                            [diff_x, diff_y]
+                                        ])
+                                        // }
                                 }
                             }
                         }
                     }
                     let color1 = new cv.Scalar(0, 255, 255, 255)
-
+                    let x_shift = 0
                     for (let i = 0; i < individual_screens.length; i++) {
-                        let point = new cv.Point(individual_screens[i][0][0], individual_screens[i][0][1])
-                        let screen_rect = new cv.Rect(individual_screens[i][0][0] + 1, individual_screens[i][0][1] + 1, individual_screens[i][1][0] - 1, individual_screens[i][1][1] - 1)
-                        let screen_hsv = new cv.Mat(individual_screens[i][1][1] - 1, individual_screens[i][1][0] - 1, cv.CV_8UC1)
-                        let screen_rng = new cv.Mat(individual_screens[i][1][1] - 1, individual_screens[i][1][0] - 1, cv.CV_8UC1)
+                        // let screen_rect = new cv.Rect(individual_screens[i][0][0] + 1, individual_screens[i][0][1] + 1, individual_screens[i][1][0] - 1, individual_screens[i][1][1] - 1)
+                        // let screen_hsv = new cv.Mat(individual_screens[i][1][1] - 1, individual_screens[i][1][0] - 1, cv.CV_8UC1)
+                        // let screen_rng = new cv.Mat(individual_screens[i][1][1] - 1, individual_screens[i][1][0] - 1, cv.CV_8UC1)
+
+
+
+                        // checking left-bottom quarter box black or not
+                        let screen_rect = new cv.Rect(individual_screens[i][0][0] + 1 + x_shift, individual_screens[i][0][1] + individual_screens[i][1][1] * 0.5 + 1, individual_screens[i][1][0] * 0.1 - 1, individual_screens[i][1][1] * 0.5 - 1) // x,y diff_x, diff_y
+                        let screen_hsv = new cv.Mat(individual_screens[i][1][1] * 0.5 - 1, individual_screens[i][1][0] * 0.1 - 1, cv.CV_8UC1)
+                        let screen_rng = new cv.Mat(individual_screens[i][1][1] * 0.5 - 1, individual_screens[i][1][0] * 0.1 - 1, cv.CV_8UC1)
                         screen_hsv = hsv.roi(screen_rect)
                         let screen_lower = [0, 0, 0, 0];
                         let screen_higher = [180, 255, 25, 0]
@@ -212,10 +246,71 @@
                         let screen_high = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_higher);
                         cv.inRange(screen_hsv, screen_low, screen_high, screen_rng)
                         let black_count = cv.countNonZero(screen_rng)
-                        let black_ratio = black_count / (individual_screens[i][1][0] * individual_screens[i][1][1])
-                        if (black_ratio < 0.95) { // check weather empty screen box
-                            cv.line(src, point, point, color1, 10, cv.LINE_8, 0)
+                        let black_ratio1 = black_count / (individual_screens[i][1][0] * 0.1 * individual_screens[i][1][1] * 0.5)
+
+                        // checking right-bottom quarter box black or not
+                        screen_rect = new cv.Rect(individual_screens[i][0][0] + individual_screens[i][1][0] * 0.5 + 1 + x_shift, individual_screens[i][0][1] + individual_screens[i][1][1] * 0.5 + 1, individual_screens[i][1][0] * 0.1 - 1, individual_screens[i][1][1] * 0.5 - 1) // x,y diff_x, diff_y
+                        screen_hsv = new cv.Mat(individual_screens[i][1][1] * 0.5 - 1, individual_screens[i][1][0] * 0.1 - 1, cv.CV_8UC1)
+                        screen_rng = new cv.Mat(individual_screens[i][1][1] * 0.5 - 1, individual_screens[i][1][0] * 0.1 - 1, cv.CV_8UC1)
+                        screen_hsv = hsv.roi(screen_rect)
+                        screen_lower = [0, 0, 0, 0];
+                        screen_higher = [180, 255, 25, 0]
+                        screen_low = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_lower);
+                        screen_high = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_higher);
+                        cv.inRange(screen_hsv, screen_low, screen_high, screen_rng)
+                        black_count = cv.countNonZero(screen_rng)
+                        let black_ratio2 = black_count / (individual_screens[i][1][0] * 0.1 * individual_screens[i][1][1] * 0.5)
+
+                        if ((black_ratio1 > 0.75 || black_ratio2 > 0.75)) {
+                            console.log(black_ratio2)
+                            last_is_most_black_vertical = true
+                            for (let j = individual_screens[i][0][0]; j < hsv.cols; j++) {
+                                let detect_rect = new cv.Rect(j, individual_screens[i][0][1], 1, individual_screens[i][1][1])
+                                vertical_hsv = hsv.roi(detect_rect)
+                                let vertical_lower = [0, 0, 0, 0];
+                                let vertical_higher = [180, 255, 33, 0]
+                                let vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                                let vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
+                                cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                                black_count = cv.countNonZero(vertical_rng)
+                                detect_rect = new cv.Rect(j, individual_screens[i][0][1], 1, individual_screens[i][1][1])
+                                vertical_hsv = hsv.roi(detect_rect)
+                                vertical_lower = [30, 30, 100, 0]
+                                vertical_higher = [90, 255, 255, 0]
+                                vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                                vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
+                                cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                                green_count = cv.countNonZero(vertical_rng)
+                                if (black_ratio1 > 0.75 && black_ratio2 < 0.75 && (green_count + black_count) < vertical_rng.rows * 0.75) {
+                                    let point1_shift = new cv.Point(j, individual_screens[i][0][1])
+                                    let point2_shift = new cv.Point(j + individual_screens[i][1][0], individual_screens[i][0][1])
+                                    let point3_shift = new cv.Point(j + individual_screens[i][1][0], individual_screens[i][0][1] + individual_screens[i][1][1])
+                                    let point4_shift = new cv.Point(j, individual_screens[i][0][1] + individual_screens[i][1][1])
+                                    cv.line(src, point1_shift, point2_shift, color1, 3, cv.LINE_8, 0)
+                                    cv.line(src, point2_shift, point3_shift, color1, 3, cv.LINE_8, 0)
+                                    cv.line(src, point3_shift, point4_shift, color1, 3, cv.LINE_8, 0)
+                                    cv.line(src, point4_shift, point1_shift, color1, 3, cv.LINE_8, 0)
+                                    cv.imshow('canvas1', src)
+
+                                    x_shift = j - individual_screens[i][0][0]
+                                    break;
+                                }
+                            }
+                        } else {
+                            let point1 = new cv.Point(individual_screens[i][0][0] + x_shift, individual_screens[i][0][1])
+                            let point2 = new cv.Point(individual_screens[i][0][0] + x_shift + individual_screens[i][1][0], individual_screens[i][0][1])
+                            let point3 = new cv.Point(individual_screens[i][0][0] + x_shift + individual_screens[i][1][0], individual_screens[i][0][1] + individual_screens[i][1][1])
+                            let point4 = new cv.Point(individual_screens[i][0][0] + x_shift, individual_screens[i][0][1] + individual_screens[i][1][1])
+                            cv.line(src, point1, point2, color1, 3, cv.LINE_8, 0)
+                            cv.line(src, point2, point3, color1, 3, cv.LINE_8, 0)
+                            cv.line(src, point3, point4, color1, 3, cv.LINE_8, 0)
+                            cv.line(src, point4, point1, color1, 3, cv.LINE_8, 0)
+                            cv.imshow('canvas1', src)
+
+
                         }
+
+
                     }
 
                     cv.imshow('canvas1', src)
