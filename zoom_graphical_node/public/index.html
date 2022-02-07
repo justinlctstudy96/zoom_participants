@@ -18,31 +18,37 @@
     <div>
         <div class="result">Zoom Meeting</div>
         <!-- <img id="imageSrc" src="./image.png" style="display: none;" /> -->
-        <img id="imageSrc" src="./image5.png" />
+        <img id="imageSrc" src="./image.png" />
         <canvas id="canvas1"></canvas>
         <canvas id="canvas2"></canvas>
         <div class="slidercontainer">
             LH: <input type="range" min="0" max="255" value="0" class="slider" id="LH">
+            <!-- LH: <input type="range" min="0" max="255" value="30" class="slider" id="LH"> -->
             <p><span id="valueLH"></span></p>
         </div>
         <div class="slidercontainer">
             LS: <input type="range" min="0" max="255" value="0" class="slider" id="LS">
+            <!-- LS: <input type="range" min="0" max="255" value="30" class="slider" id="LS"> -->
             <p><span id="valueLS"></span></p>
         </div>
         <div class="slidercontainer">
             LV: <input type="range" min="0" max="255" value="0" class="slider" id="LV">
+            <!-- LV: <input type="range" min="0" max="255" value="100" class="slider" id="LV"> -->
             <p><span id="valueLV"></span></p>
         </div>
         <div class="slidercontainer">
             HH: <input type="range" min="0" max="180" value="180" class="slider" id="HH">
+            <!-- HH: <input type="range" min="0" max="180" value="87" class="slider" id="HH"> -->
             <p><span id="valueHH"></span></p>
         </div>
         <div class="slidercontainer">
             HS: <input type="range" min="0" max="255" value="255" class="slider" id="HS">
+            <!-- HS: <input type="range" min="0" max="255" value="255" class="slider" id="HS"> -->
             <p><span id="valueHS"></span></p>
         </div>
         <div class="slidercontainer">
             HV: <input type="range" min="0" max="255" value="33" class="slider" id="HV">
+            <!-- HV: <input type="range" min="0" max="255" value="255" class="slider" id="HV"> -->
             <p><span id="valueHV"></span></p>
         </div>
         <div id="submit-button">change</div>
@@ -97,36 +103,43 @@
                     let horizontal_hsv = new cv.Mat(dst.rows, 1, cv.CV_8UC1)
                     let horizontal_rng = new cv.Mat(dst.rows, 1, cv.CV_8UC1)
                     let black_count = 0
+                    let green_count = 0
                     let last_is_most_black_vertical = false
                     let last_is_most_black_horizontal = false
-                    let vertical_line_count = 0
                     let horizontal_line_count = 0
-                    let vertical_line_array = []
+                        // let vertical_line_array = []
                     let horizontal_line_array = []
-                    for (let i = 0; i < hsv.cols; i++) {
-                        let detect_rect = new cv.Rect(i, 0, 1, hsv.rows)
-                        vertical_hsv = hsv.roi(detect_rect)
-                        let vertical_lower = [0, 0, 0, 0];
-                        let vertical_higher = [180, 255, 33, 0]
-                        let vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
-                        let vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
-                        cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
-                        black_count = cv.countNonZero(vertical_rng)
-                        if (black_count > vertical_rng.rows * 0.75) {
-                            if (!last_is_most_black_vertical) {
-                                vertical_line_count++;
-                                vertical_line_array.push(i)
-                            }
-                            last_is_most_black_vertical = true
-                        } else if (last_is_most_black_vertical) {
-                            vertical_line_count++;
-                            vertical_line_array.push(i)
-                            last_is_most_black_vertical = false
-                        } else {
-                            last_is_most_black_vertical = false
-                        }
-                    }
-                    for (let i = 0; i < hsv.rows; i++) {
+                    let vertical_section_coord = {}
+                        // for (let i = 0; i < hsv.cols; i++) { // vertical sectioning 
+                        //     let detect_rect = new cv.Rect(i, 0, 1, hsv.rows)
+                        //     vertical_hsv = hsv.roi(detect_rect)
+                        //     let vertical_lower = [0, 0, 0, 0];
+                        //     let vertical_higher = [180, 255, 33, 0]
+                        //     let vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                        //     let vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
+                        //     cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                        //     black_count = cv.countNonZero(vertical_rng)
+                        //     vertical_lower = [30, 30, 100, 0];
+                        //     vertical_higher = [90, 255, 255, 0]
+                        //     vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                        //     vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
+                        //     cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                        //     green_count = cv.countNonZero(vertical_rng)
+                        //     if ((black_count + green_count) > vertical_rng.rows * 0.76) {
+                        //         if (!last_is_most_black_vertical) {
+                        //             vertical_line_count++;
+                        //             vertical_line_array.push(i)
+                        //         }
+                        //         last_is_most_black_vertical = true
+                        //     } else if (last_is_most_black_vertical) {
+                        //         vertical_line_count++;
+                        //         vertical_line_array.push(i)
+                        //         last_is_most_black_vertical = false
+                        //     } else {
+                        //         last_is_most_black_vertical = false
+                        //     }
+                        // }
+                    for (let i = 0; i < hsv.rows; i++) { // horizontal sectioning
                         let detect_rect = new cv.Rect(0, i, hsv.cols, 1)
                         horizontal_hsv = hsv.roi(detect_rect)
                         let horizontal_lower = [0, 0, 0, 0];
@@ -135,7 +148,13 @@
                         let horizontal_high = new cv.Mat(horizontal_hsv.rows, horizontal_hsv.cols, horizontal_hsv.type(), horizontal_higher);
                         cv.inRange(horizontal_hsv, horizontal_low, horizontal_high, horizontal_rng)
                         black_count = cv.countNonZero(horizontal_rng)
-                        if (black_count > horizontal_rng.cols * 0.75) {
+                        horizontal_lower = [0, 0, 0, 0];
+                        horizontal_higher = [180, 255, 33, 0]
+                        horizontal_low = new cv.Mat(horizontal_hsv.rows, horizontal_hsv.cols, horizontal_hsv.type(), horizontal_lower);
+                        horizontal_high = new cv.Mat(horizontal_hsv.rows, horizontal_hsv.cols, horizontal_hsv.type(), horizontal_higher);
+                        cv.inRange(horizontal_hsv, horizontal_low, horizontal_high, horizontal_rng)
+                        green_count = cv.countNonZero(horizontal_rng)
+                        if ((green_count + black_count) > horizontal_rng.cols * 0.85) {
                             if (!last_is_most_black_horizontal) {
                                 horizontal_line_count++;
                                 horizontal_line_array.push(i)
@@ -149,18 +168,169 @@
                             last_is_most_black_horizontal = false
                         }
                     }
-                    console.log(vertical_line_count)
+                    // console.log(vertical_line_count)
                     console.log(horizontal_line_count)
                     let color = new cv.Scalar(255, 255, 0, 255)
-                    for (let i = 0; i < vertical_line_array.length; i++) {
-                        let line_pt1 = new cv.Point(vertical_line_array[i], 0)
-                        let line_pt2 = new cv.Point(vertical_line_array[i], hsv.rows)
-                        cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
-                    }
-                    for (let i = 0; i < horizontal_line_array.length; i++) {
+                        // for (let i = 0; i < vertical_line_array.length; i++) { // drawing vertical lines
+                        //     let line_pt1 = new cv.Point(vertical_line_array[i], 0)
+                        //     let line_pt2 = new cv.Point(vertical_line_array[i], hsv.rows)
+                        //     cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
+                        // }
+
+                    last_is_most_black_vertical = false
+                        // for (let i = 0; i < horizontal_line_array.length - 1; i++) { // drawing horizontal lines
+                    for (let i = 0; i < 6; i++) {
                         let line_pt1 = new cv.Point(0, horizontal_line_array[i])
                         let line_pt2 = new cv.Point(hsv.cols, horizontal_line_array[i])
                         cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
+
+                        let y_diff = horizontal_line_array[i + 1] - horizontal_line_array[i]
+                        if (y_diff > hsv.rows * 0.1) {
+
+                            let row_rect = new cv.Rect(0, horizontal_line_array[i], hsv.cols, y_diff) // (x,y,horizontal,vertical)
+                            row_hsv = hsv.roi(row_rect)
+                            console.log('nani')
+                                // for (let j = 0; j < hsv.cols; j++) { // vertical sectioning 
+                                //     let detect_rect = new cv.Rect(j, 0, 1, y_diff)
+                                //     vertical_hsv = row_hsv.roi(detect_rect)
+                                //     let vertical_lower = [0, 0, 0, 0];
+                                //     let vertical_higher = [180, 255, 33, 0]
+                                //     let vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                                //     let vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
+                                //     cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                                //     black_count = cv.countNonZero(vertical_rng)
+                                //     vertical_lower = [30, 30, 100, 0];
+                                //     vertical_higher = [90, 255, 255, 0]
+                                //     vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                                //     vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
+                                //     cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                                //     green_count = cv.countNonZero(vertical_rng)
+
+                            //     if ((black_count + green_count) > vertical_rng.rows * 0.85) { // need correction for recording the intersection point coordinates
+                            //         if (!last_is_most_black_vertical) {
+                            //             vertical_line_count++;
+                            //             // vertical_section_coord.push(i)
+                            //             let line_pt1 = new cv.Point(j, horizontal_line_array[i])
+                            //             let line_pt2 = new cv.Point(j, horizontal_line_array[i] + y_diff)
+                            //             cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
+                            //         }
+                            //         last_is_most_black_vertical = true
+                            //     } else if (last_is_most_black_vertical) {
+                            //         vertical_line_count++;
+                            //         // vertical_line_array.push(i)
+                            //         let line_pt1 = new cv.Point(j, horizontal_line_array[i])
+                            //         let line_pt2 = new cv.Point(j, horizontal_line_array[i] + y_diff)
+                            //         cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
+                            //         last_is_most_black_vertical = false
+                            //     } else {
+                            //         last_is_most_black_vertical = false
+                            //     }
+                            // }
+                            let x_diff = y_diff * 1.84
+                            let detection_allowance = 0.1
+                            let x_diff_upper_limit = x_diff + y_diff * detection_allowance
+                            let x_diff_lower_limit = x_diff - y_diff * detection_allowance
+                            console.log('wtf')
+                            console.log(x_diff_upper_limit)
+                            console.log(x_diff_lower_limit)
+                            let vertical_line_count = 0
+                            let most_vertical_line_count = 0
+                            let most_vertical_line_x_coord = 0
+                            for (let k = 0; k < hsv.cols; k++) {
+                                let last_x = k
+                                let vertical_line_x_coord = []
+                                let separation_distance = 0
+                                vertical_line_count = 0
+                                last_is_most_black_vertical = false
+
+                                for (let j = k; j < hsv.cols; j++) { // vertical sectioning 
+                                    separation_distance = j - last_x
+                                        // if (vertical_line_x_coord.length == 0 || (separation_distance > x_diff_lower_limit) && (separation_distance < x_diff_upper_limit)) {
+                                        // if (vertical_line_x_coord.length == 0 || vertical_line_x_coord.length == 1 || (separation_distance > x_diff_lower_limit) && (separation_distance < x_diff_upper_limit)) {
+                                    if (vertical_line_x_coord.length == 0 || ((separation_distance > x_diff_lower_limit) && (separation_distance < x_diff_upper_limit))) {
+                                        let detect_rect = new cv.Rect(j, 0, 1, y_diff)
+                                        vertical_hsv = row_hsv.roi(detect_rect)
+                                        let vertical_lower = [0, 0, 0, 0];
+                                        let vertical_higher = [180, 255, 33, 0]
+                                        let vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                                        let vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
+                                        cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                                        vertical_low.delete();
+                                        vertical_high.delete();
+                                        black_count = cv.countNonZero(vertical_rng)
+                                        vertical_lower = [30, 30, 100, 0];
+                                        vertical_higher = [90, 255, 255, 0]
+                                        vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                                        vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
+                                        cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                                        vertical_low.delete();
+                                        vertical_high.delete();
+                                        green_count = cv.countNonZero(vertical_rng)
+                                        vertical_hsv.delete()
+
+                                        if (vertical_line_x_coord.length == 0) {
+                                            if ((black_count + green_count) > vertical_rng.rows * 0.85) {
+                                                vertical_line_count++;
+                                                vertical_line_x_coord.push(j)
+                                            }
+                                        } else if (vertical_line_x_coord.length == 1) {
+                                            if ((black_count + green_count) < vertical_rng.rows * 0.85) {
+                                                let diff_bt_currentnprevious = j - vertical_line_x_coord[0]
+                                                if (diff_bt_currentnprevious < x_diff_lower_limit || diff_bt_currentnprevious > x_diff_upper_limit) {
+                                                    vertical_line_count = 0;
+                                                    vertical_line_x_coord = []
+                                                } else {
+                                                    vertical_line_count++;
+                                                    vertical_line_x_coord.push(j)
+                                                        // last_x = j
+                                                }
+                                            }
+                                        } else {
+                                            if ((black_count + green_count) > vertical_rng.rows * 0.85) { // separation line detected
+                                                if (!last_is_most_black_vertical) { // separation line start
+                                                    last_x = j
+                                                    vertical_line_count++;
+                                                    vertical_line_x_coord.push(j)
+                                                }
+                                                last_is_most_black_vertical = true
+                                            } else if (last_is_most_black_vertical) { // separation line ended 
+                                                last_x = j
+                                                vertical_line_count++;
+                                                vertical_line_x_coord.push(j)
+                                                last_is_most_black_vertical = false
+                                            } else {
+                                                last_is_most_black_vertical = false
+                                            }
+                                        }
+
+                                    } else if (separation_distance > x_diff_upper_limit) {
+                                        // last_x = j
+                                    }
+                                }
+                                if (vertical_line_count > most_vertical_line_count) {
+                                    most_vertical_line_count = vertical_line_count
+                                    most_vertical_line_x_coord = k
+                                    console.log('larger than most')
+                                    console.log(vertical_line_count)
+                                    console.log(vertical_section_coord)
+                                    vertical_section_coord[horizontal_line_array[i]] = vertical_line_x_coord
+                                }
+                            }
+                            console.log('most')
+                            console.log(most_vertical_line_count)
+                        }
+                    }
+
+                    for (let i = 0; i < horizontal_line_array.length - 1; i++) {
+                        y_diff = horizontal_line_array[i + 1] - horizontal_line_array[i]
+                        console.log(vertical_section_coord[horizontal_line_array[i]])
+                        if (vertical_section_coord[horizontal_line_array[i]]) {
+                            for (let j = 0; j < vertical_section_coord[horizontal_line_array[i]].length; j++) {
+                                let line_pt1 = new cv.Point(vertical_section_coord[horizontal_line_array[i]][j], horizontal_line_array[i])
+                                let line_pt2 = new cv.Point(vertical_section_coord[horizontal_line_array[i]][j], horizontal_line_array[i] + y_diff)
+                                cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
+                            }
+                        }
                     }
 
                     let intersect_pts = []
@@ -169,42 +339,42 @@
                     let diff_y = 0;
                     let diff_ratio = 0
 
-                    for (let i = 0; i < vertical_line_array.length - 1; i++) {
-                        diff_x = vertical_line_array[i + 1] - vertical_line_array[i]
-                        if (diff_x > (src.cols * 0.1)) {
-                            for (let j = 0; j < horizontal_line_array.length - 1; j++) {
-                                diff_y = horizontal_line_array[j + 1] - horizontal_line_array[j]
-                                diff_ratio = diff_x / diff_y
+                    // for (let i = 0; i < vertical_line_array.length - 1; i++) {
+                    //     diff_x = vertical_line_array[i + 1] - vertical_line_array[i]
+                    //     if (diff_x > (src.cols * 0.1)) {
+                    //         for (let j = 0; j < horizontal_line_array.length - 1; j++) {
+                    //             diff_y = horizontal_line_array[j + 1] - horizontal_line_array[j]
+                    //             diff_ratio = diff_x / diff_y
 
-                                // if (diff_ratio > 1.7 && diff_ratio < 1.9) {
-                                if (diff_ratio > 1.65 && diff_ratio < 1.9) {
-                                    individual_screens.push([
-                                        [vertical_line_array[i], horizontal_line_array[j]],
-                                        [diff_x, diff_y]
-                                    ])
-                                }
-                            }
-                        }
-                    }
+                    //             // if (diff_ratio > 1.7 && diff_ratio < 1.9) {
+                    //             if (diff_ratio > 1.65 && diff_ratio < 1.9) {
+                    //                 individual_screens.push([
+                    //                     [vertical_line_array[i], horizontal_line_array[j]],
+                    //                     [diff_x, diff_y]
+                    //                 ])
+                    //             }
+                    //         }
+                    //     }
+                    // }
                     let color1 = new cv.Scalar(0, 255, 255, 255)
 
-                    for (let i = 0; i < individual_screens.length; i++) {
-                        let point = new cv.Point(individual_screens[i][0][0], individual_screens[i][0][1])
-                        let screen_rect = new cv.Rect(individual_screens[i][0][0] + 1, individual_screens[i][0][1] + 1, individual_screens[i][1][0] - 1, individual_screens[i][1][1] - 1)
-                        let screen_hsv = new cv.Mat(individual_screens[i][1][1] - 1, individual_screens[i][1][0] - 1, cv.CV_8UC1)
-                        let screen_rng = new cv.Mat(individual_screens[i][1][1] - 1, individual_screens[i][1][0] - 1, cv.CV_8UC1)
-                        screen_hsv = hsv.roi(screen_rect)
-                        let screen_lower = [0, 0, 0, 0];
-                        let screen_higher = [180, 255, 25, 0]
-                        let screen_low = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_lower);
-                        let screen_high = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_higher);
-                        cv.inRange(screen_hsv, screen_low, screen_high, screen_rng)
-                        let black_count = cv.countNonZero(screen_rng)
-                        let black_ratio = black_count / (individual_screens[i][1][0] * individual_screens[i][1][1])
-                        if (black_ratio < 0.95) { // check weather empty screen box
-                            cv.line(src, point, point, color1, 10, cv.LINE_8, 0)
-                        }
-                    }
+                    // for (let i = 0; i < individual_screens.length; i++) {
+                    //     let point = new cv.Point(individual_screens[i][0][0], individual_screens[i][0][1])
+                    //     let screen_rect = new cv.Rect(individual_screens[i][0][0] + 1, individual_screens[i][0][1] + 1, individual_screens[i][1][0] - 1, individual_screens[i][1][1] - 1)
+                    //     let screen_hsv = new cv.Mat(individual_screens[i][1][1] - 1, individual_screens[i][1][0] - 1, cv.CV_8UC1)
+                    //     let screen_rng = new cv.Mat(individual_screens[i][1][1] - 1, individual_screens[i][1][0] - 1, cv.CV_8UC1)
+                    //     screen_hsv = hsv.roi(screen_rect)
+                    //     let screen_lower = [0, 0, 0, 0];
+                    //     let screen_higher = [180, 255, 25, 0]
+                    //     let screen_low = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_lower);
+                    //     let screen_high = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_higher);
+                    //     cv.inRange(screen_hsv, screen_low, screen_high, screen_rng)
+                    //     let black_count = cv.countNonZero(screen_rng)
+                    //     let black_ratio = black_count / (individual_screens[i][1][0] * individual_screens[i][1][1])
+                    //     if (black_ratio < 0.95) { // check weather empty screen box
+                    //         cv.line(src, point, point, color1, 10, cv.LINE_8, 0)
+                    //     }
+                    // }
 
                     cv.imshow('canvas1', src)
                     cv.imshow('canvas2', dst)
