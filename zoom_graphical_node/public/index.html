@@ -97,6 +97,7 @@
                     let horizontal_hsv = new cv.Mat(dst.rows, 1, cv.CV_8UC1)
                     let horizontal_rng = new cv.Mat(dst.rows, 1, cv.CV_8UC1)
                     let black_count = 0
+                    let green_count = 0
                     let last_is_most_black_vertical = false
                     let last_is_most_black_horizontal = false
                     let vertical_line_count = 0
@@ -111,8 +112,19 @@
                         let vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
                         let vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
                         cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                        vertical_low.delete()
+                        vertical_high.delete()
                         black_count = cv.countNonZero(vertical_rng)
-                        if (black_count > vertical_rng.rows * 0.75) {
+                        vertical_lower = [30, 30, 100, 0]
+                        vertical_higher = [90, 255, 255, 0]
+                        vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                        vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
+                        cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                        vertical_low.delete()
+                        vertical_high.delete()
+                        green_count = cv.countNonZero(vertical_rng)
+                        vertical_hsv.delete()
+                        if ((green_count + black_count) > vertical_rng.rows * 0.75) {
                             if (!last_is_most_black_vertical) {
                                 vertical_line_count++;
                                 vertical_line_array.push(i)
