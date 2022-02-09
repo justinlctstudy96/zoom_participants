@@ -8,6 +8,13 @@
     <script src="./lib/ndarray-browser-min.js"></script>
     <script src="./lib/image-loader.js"></script>
     <script src="./lib/imagenetClasses.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils_3d/control_utils_3d.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
     <style>
 
     </style>
@@ -21,6 +28,7 @@
         <img id="imageSrc" src="./image7.png" />
         <canvas id="canvas1"></canvas>
         <canvas id="canvas2"></canvas>
+        <div id="detected-screens-container"></div>
         <div class="slidercontainer">
             LH: <input type="range" min="0" max="255" value="0" class="slider" id="LH">
             <p><span id="valueLH"></span></p>
@@ -46,11 +54,68 @@
             <p><span id="valueHV"></span></p>
         </div>
         <div id="submit-button">change</div>
+        <div class="landmark-grid-container" hidden="true"></div>
+        <canvas id="detected-canvas-filtered" width="960px" height="720px"></canvas>
+
     </div>
     <div>
         <div id="predictions"></div>
     </div>
     <script type="text/javascript">
+        function sleep(miliseconds) {
+            var currentTime = new Date().getTime();
+
+            while (currentTime + miliseconds >= new Date().getTime()) {}
+        }
+        const detected_screen_container = document.getElementById('detected-screens-container')
+
+        // const pose = new Pose({
+        //     locateFile: (file) => {
+        //         return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+        //     }
+        // });
+        // pose.setOptions({
+        //     modelComplexity: 1,
+        //     smoothLandmarks: true,
+        //     enableSegmentation: true,
+        //     smoothSegmentation: true,
+        //     minDetectionConfidence: 0.5,
+        //     minTrackingConfidence: 0.5
+        // });
+
+        let pose = {};
+        let onResultFunctions = {};
+        // for background filtering
+        // let startTime = new Date().getTime();
+        // let endTime;
+        // const landmarkContainer = document.getElementsByClassName('landmark-grid-container')[0];
+        // const grid = new LandmarkGrid(landmarkContainer);
+
+
+        // function onBackgroundResult(results) {
+        //     if (!results.poseLandmarks) {
+        //         grid.updateLandmarks([]);
+        //         console.log("no person");
+        //         return;
+        //     }
+        //     canvasCtx = canvasElement.getContext('2d');
+        //     canvasCtx.save();
+        //     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+        //     canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
+        //     canvasCtx.globalCompositeOperation = 'source-in';
+        //     canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+
+        //     //timer
+        //     endTime = new Date().getTime();
+        //     if (endTime - startTime >= 1000) {
+        //         startTime = endTime;
+        //     }
+        //     canvasCtx.restore();
+
+        //     // global point 
+        //     grid.updateLandmarks(results.poseWorldLandmarks);
+        // }
+
         function onOpenCvReady() {
             cv['onRuntimeInitialized'] = () => {
                 console.log("OpenCV.js is ready")
@@ -71,8 +136,11 @@
                 slider_HS.addEventListener("change", processPhoto)
                 slider_HV.addEventListener("change", processPhoto)
 
+                function croppingToImage(corner1, corner2, corner3, corner4, ) {
 
-                function processPhoto() {
+                }
+
+                async function processPhoto() {
                     console.log('processphoto')
                     let begin = Date.now()
                     let LH = parseFloat(slider_LH.value)
@@ -165,14 +233,14 @@
                     console.log(horizontal_line_count)
                     let color = new cv.Scalar(255, 255, 0, 255)
                     for (let i = 0; i < vertical_line_array.length; i++) {
-                        let line_pt1 = new cv.Point(vertical_line_array[i], 0)
-                        let line_pt2 = new cv.Point(vertical_line_array[i], hsv.rows)
-                            // cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
+                        // let line_pt1 = new cv.Point(vertical_line_array[i], 0)
+                        // let line_pt2 = new cv.Point(vertical_line_array[i], hsv.rows)
+                        // cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
                     }
                     for (let i = 0; i < horizontal_line_array.length; i++) {
-                        let line_pt1 = new cv.Point(0, horizontal_line_array[i])
-                        let line_pt2 = new cv.Point(hsv.cols, horizontal_line_array[i])
-                            // cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
+                        // let line_pt1 = new cv.Point(0, horizontal_line_array[i])
+                        // let line_pt2 = new cv.Point(hsv.cols, horizontal_line_array[i])
+                        // cv.line(src, line_pt1, line_pt2, color, 3, cv.LINE_8, 0)
                     }
 
                     let intersect_pts = []
@@ -214,8 +282,6 @@
 
                                     // console.log(black_count)
                                     // if ((black_count + green_count) > diff_y * 0.5) {
-                                    console.log(green_count)
-                                    console.log('really')
                                     frame_row_count++;
                                     individual_screens.push([
                                             [vertical_line_array[j], horizontal_line_array[i]],
@@ -229,100 +295,228 @@
                     let color1 = new cv.Scalar(0, 255, 255, 255)
                     let x_shift = 0
                     for (let i = 0; i < individual_screens.length; i++) {
+                        // for (let i = 0; i < 1; i++) {
                         // let screen_rect = new cv.Rect(individual_screens[i][0][0] + 1, individual_screens[i][0][1] + 1, individual_screens[i][1][0] - 1, individual_screens[i][1][1] - 1)
                         // let screen_hsv = new cv.Mat(individual_screens[i][1][1] - 1, individual_screens[i][1][0] - 1, cv.CV_8UC1)
                         // let screen_rng = new cv.Mat(individual_screens[i][1][1] - 1, individual_screens[i][1][0] - 1, cv.CV_8UC1)
 
+                        if (individual_screens[i][0][0] + 1 + x_shift + individual_screens[i][1][0] < hsv.cols) { // considering the screen of the last row after shifting out of the entire hsv (roi error)
 
+                            // checking left-bottom quarter box black or not
+                            let screen_rect = new cv.Rect(individual_screens[i][0][0] + 1 + x_shift, individual_screens[i][0][1] + individual_screens[i][1][1] * 0.5 + 1, individual_screens[i][1][0] * 0.1 - 1, individual_screens[i][1][1] * 0.5 - 1) // x,y diff_x, diff_y
+                            let screen_hsv = new cv.Mat(individual_screens[i][1][1] * 0.5 - 1, individual_screens[i][1][0] * 0.1 - 1, cv.CV_8UC1)
+                            let screen_rng = new cv.Mat(individual_screens[i][1][1] * 0.5 - 1, individual_screens[i][1][0] * 0.1 - 1, cv.CV_8UC1)
+                            screen_hsv = hsv.roi(screen_rect)
+                            let screen_lower = [0, 0, 0, 0];
+                            let screen_higher = [180, 255, 25, 0]
+                            let screen_low = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_lower);
+                            let screen_high = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_higher);
+                            cv.inRange(screen_hsv, screen_low, screen_high, screen_rng)
+                            let black_count = cv.countNonZero(screen_rng)
+                            let black_ratio1 = black_count / (individual_screens[i][1][0] * 0.1 * individual_screens[i][1][1] * 0.5)
 
-                        // checking left-bottom quarter box black or not
-                        let screen_rect = new cv.Rect(individual_screens[i][0][0] + 1 + x_shift, individual_screens[i][0][1] + individual_screens[i][1][1] * 0.5 + 1, individual_screens[i][1][0] * 0.1 - 1, individual_screens[i][1][1] * 0.5 - 1) // x,y diff_x, diff_y
-                        let screen_hsv = new cv.Mat(individual_screens[i][1][1] * 0.5 - 1, individual_screens[i][1][0] * 0.1 - 1, cv.CV_8UC1)
-                        let screen_rng = new cv.Mat(individual_screens[i][1][1] * 0.5 - 1, individual_screens[i][1][0] * 0.1 - 1, cv.CV_8UC1)
-                        screen_hsv = hsv.roi(screen_rect)
-                        let screen_lower = [0, 0, 0, 0];
-                        let screen_higher = [180, 255, 25, 0]
-                        let screen_low = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_lower);
-                        let screen_high = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_higher);
-                        cv.inRange(screen_hsv, screen_low, screen_high, screen_rng)
-                        let black_count = cv.countNonZero(screen_rng)
-                        let black_ratio1 = black_count / (individual_screens[i][1][0] * 0.1 * individual_screens[i][1][1] * 0.5)
+                            // checking right-bottom quarter box black or not
+                            screen_rect = new cv.Rect(individual_screens[i][0][0] + individual_screens[i][1][0] * 0.5 + 1 + x_shift, individual_screens[i][0][1] + individual_screens[i][1][1] * 0.5 + 1, individual_screens[i][1][0] * 0.1 - 1, individual_screens[i][1][1] * 0.5 - 1) // x,y diff_x, diff_y
+                            screen_hsv = new cv.Mat(individual_screens[i][1][1] * 0.5 - 1, individual_screens[i][1][0] * 0.1 - 1, cv.CV_8UC1)
+                            screen_rng = new cv.Mat(individual_screens[i][1][1] * 0.5 - 1, individual_screens[i][1][0] * 0.1 - 1, cv.CV_8UC1)
+                            screen_hsv = hsv.roi(screen_rect)
+                            screen_lower = [0, 0, 0, 0];
+                            screen_higher = [180, 255, 25, 0]
+                            screen_low = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_lower);
+                            screen_high = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_higher);
+                            cv.inRange(screen_hsv, screen_low, screen_high, screen_rng)
+                            black_count = cv.countNonZero(screen_rng)
+                            let black_ratio2 = black_count / (individual_screens[i][1][0] * 0.1 * individual_screens[i][1][1] * 0.5)
 
-                        // checking right-bottom quarter box black or not
-                        screen_rect = new cv.Rect(individual_screens[i][0][0] + individual_screens[i][1][0] * 0.5 + 1 + x_shift, individual_screens[i][0][1] + individual_screens[i][1][1] * 0.5 + 1, individual_screens[i][1][0] * 0.1 - 1, individual_screens[i][1][1] * 0.5 - 1) // x,y diff_x, diff_y
-                        screen_hsv = new cv.Mat(individual_screens[i][1][1] * 0.5 - 1, individual_screens[i][1][0] * 0.1 - 1, cv.CV_8UC1)
-                        screen_rng = new cv.Mat(individual_screens[i][1][1] * 0.5 - 1, individual_screens[i][1][0] * 0.1 - 1, cv.CV_8UC1)
-                        screen_hsv = hsv.roi(screen_rect)
-                        screen_lower = [0, 0, 0, 0];
-                        screen_higher = [180, 255, 25, 0]
-                        screen_low = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_lower);
-                        screen_high = new cv.Mat(screen_hsv.rows, screen_hsv.cols, screen_hsv.type(), screen_higher);
-                        cv.inRange(screen_hsv, screen_low, screen_high, screen_rng)
-                        black_count = cv.countNonZero(screen_rng)
-                        let black_ratio2 = black_count / (individual_screens[i][1][0] * 0.1 * individual_screens[i][1][1] * 0.5)
+                            if ((black_ratio1 > 0.75 || black_ratio2 > 0.75)) {
+                                console.log(black_ratio2)
+                                last_is_most_black_vertical = true
+                                for (let j = individual_screens[i][0][0]; j < hsv.cols; j++) {
+                                    let detect_rect = new cv.Rect(j, individual_screens[i][0][1], 1, individual_screens[i][1][1])
+                                    vertical_hsv = hsv.roi(detect_rect)
+                                    let vertical_lower = [0, 0, 0, 0];
+                                    let vertical_higher = [180, 255, 33, 0]
+                                    let vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                                    let vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
+                                    cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                                    black_count = cv.countNonZero(vertical_rng)
+                                    detect_rect = new cv.Rect(j, individual_screens[i][0][1], 1, individual_screens[i][1][1])
+                                    vertical_hsv = hsv.roi(detect_rect)
+                                    vertical_lower = [30, 30, 100, 0]
+                                    vertical_higher = [90, 255, 255, 0]
+                                    vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
+                                    vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
+                                    cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
+                                    green_count = cv.countNonZero(vertical_rng)
+                                    if (black_ratio1 > 0.75 && black_ratio2 < 0.75 && (green_count + black_count) < vertical_rng.rows * 0.75) {
+                                        let point1_shift = new cv.Point(j, individual_screens[i][0][1])
+                                        let point2_shift = new cv.Point(j + individual_screens[i][1][0], individual_screens[i][0][1])
+                                        let point3_shift = new cv.Point(j + individual_screens[i][1][0], individual_screens[i][0][1] + individual_screens[i][1][1])
+                                        let point4_shift = new cv.Point(j, individual_screens[i][0][1] + individual_screens[i][1][1])
+                                        cv.line(src, point1_shift, point2_shift, color1, 3, cv.LINE_8, 0)
+                                        cv.line(src, point2_shift, point3_shift, color1, 3, cv.LINE_8, 0)
+                                        cv.line(src, point3_shift, point4_shift, color1, 3, cv.LINE_8, 0)
+                                        cv.line(src, point4_shift, point1_shift, color1, 3, cv.LINE_8, 0)
+                                        cv.imshow('canvas1', src)
 
-                        if ((black_ratio1 > 0.75 || black_ratio2 > 0.75)) {
-                            console.log(black_ratio2)
-                            last_is_most_black_vertical = true
-                            for (let j = individual_screens[i][0][0]; j < hsv.cols; j++) {
-                                let detect_rect = new cv.Rect(j, individual_screens[i][0][1], 1, individual_screens[i][1][1])
-                                vertical_hsv = hsv.roi(detect_rect)
-                                let vertical_lower = [0, 0, 0, 0];
-                                let vertical_higher = [180, 255, 33, 0]
-                                let vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
-                                let vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
-                                cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
-                                black_count = cv.countNonZero(vertical_rng)
-                                detect_rect = new cv.Rect(j, individual_screens[i][0][1], 1, individual_screens[i][1][1])
-                                vertical_hsv = hsv.roi(detect_rect)
-                                vertical_lower = [30, 30, 100, 0]
-                                vertical_higher = [90, 255, 255, 0]
-                                vertical_low = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_lower);
-                                vertical_high = new cv.Mat(vertical_hsv.rows, vertical_hsv.cols, vertical_hsv.type(), vertical_higher);
-                                cv.inRange(vertical_hsv, vertical_low, vertical_high, vertical_rng)
-                                green_count = cv.countNonZero(vertical_rng)
-                                if (black_ratio1 > 0.75 && black_ratio2 < 0.75 && (green_count + black_count) < vertical_rng.rows * 0.75) {
-                                    let point1_shift = new cv.Point(j, individual_screens[i][0][1])
-                                    let point2_shift = new cv.Point(j + individual_screens[i][1][0], individual_screens[i][0][1])
-                                    let point3_shift = new cv.Point(j + individual_screens[i][1][0], individual_screens[i][0][1] + individual_screens[i][1][1])
-                                    let point4_shift = new cv.Point(j, individual_screens[i][0][1] + individual_screens[i][1][1])
-                                    cv.line(src, point1_shift, point2_shift, color1, 3, cv.LINE_8, 0)
-                                    cv.line(src, point2_shift, point3_shift, color1, 3, cv.LINE_8, 0)
-                                    cv.line(src, point3_shift, point4_shift, color1, 3, cv.LINE_8, 0)
-                                    cv.line(src, point4_shift, point1_shift, color1, 3, cv.LINE_8, 0)
-                                    cv.imshow('canvas1', src)
+                                        detected_screen_container.innerHTML += `
+                                            <canvas id="detected-canvas-${i}" style="display:none"></canvas>
+                                            <img id="detected-img-${i}" />
+                                            <canvas id="detected-canvas-filtered-${i}" ></canvas>
+                                        `
+                                            // let temp_canvas = document.createElement("canvas")
+                                        detect_rect = new cv.Rect(j, individual_screens[i][0][1], individual_screens[i][1][0], individual_screens[i][1][1])
+                                        let detected_src = src.roi(detect_rect)
+                                        cv.imshow(`detected-canvas-${i}`, detected_src)
+                                        let dataUrl = document.getElementById(`detected-canvas-${i}`).toDataURL()
+                                        let detected_img = document.getElementById(`detected-img-${i}`)
+                                        detected_img.src = dataUrl
+                                        const landmarkContainer = document.getElementsByClassName('landmark-grid-container')[0];
+                                        const grid = new LandmarkGrid(landmarkContainer);
 
-                                    x_shift = j - individual_screens[i][0][0]
-                                    break;
+                                        let startTime = new Date().getTime();
+                                        let endTime;
+
+                                        function onBackgroundResult(results) {
+                                            if (!results.poseLandmarks) {
+                                                grid.updateLandmarks([]);
+                                                console.log("no person");
+                                                return;
+                                            }
+                                            let canvasElement = document.getElementById(`detected-canvas-filtered-${i}`)
+                                            let canvasCtx = canvasElement.getContext('2d');
+                                            canvasCtx.save();
+                                            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                                            canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
+                                            canvasCtx.globalCompositeOperation = 'source-in';
+                                            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+                                            //timer
+                                            endTime = new Date().getTime();
+                                            if (endTime - startTime >= 1000) {
+                                                startTime = endTime;
+                                            }
+                                            canvasCtx.restore();
+                                            // global point 
+                                            grid.updateLandmarks(results.poseWorldLandmarks);
+                                        }
+                                        // pose.onResults(onBackgroundResult);
+                                        // await pose.send({
+                                        //     image: detected_img
+                                        // })
+
+                                        x_shift = j - individual_screens[i][0][0]
+                                        break;
+                                    }
                                 }
+                            } else {
+                                let point1 = new cv.Point(individual_screens[i][0][0] + x_shift, individual_screens[i][0][1])
+                                let point2 = new cv.Point(individual_screens[i][0][0] + x_shift + individual_screens[i][1][0], individual_screens[i][0][1])
+                                let point3 = new cv.Point(individual_screens[i][0][0] + x_shift + individual_screens[i][1][0], individual_screens[i][0][1] + individual_screens[i][1][1])
+                                let point4 = new cv.Point(individual_screens[i][0][0] + x_shift, individual_screens[i][0][1] + individual_screens[i][1][1])
+                                cv.line(src, point1, point2, color1, 3, cv.LINE_8, 0)
+                                cv.line(src, point2, point3, color1, 3, cv.LINE_8, 0)
+                                cv.line(src, point3, point4, color1, 3, cv.LINE_8, 0)
+                                cv.line(src, point4, point1, color1, 3, cv.LINE_8, 0)
+                                cv.imshow('canvas1', src)
+
+                                detected_screen_container.innerHTML += `
+                                            <canvas id="detected-canvas-${i}" style="display:none"></canvas>
+                                            <img id="detected-img-${i}" />
+                                            <canvas id="detected-canvas-filtered-${i}" ></canvas>
+                                        `
+                                    // let temp_canvas = document.createElement("canvas")
+                                detect_rect = new cv.Rect(individual_screens[i][0][0] + x_shift, individual_screens[i][0][1], individual_screens[i][1][0], individual_screens[i][1][1])
+                                let detected_src = src.roi(detect_rect)
+                                cv.imshow(`detected-canvas-${i}`, detected_src)
+                                let dataUrl = document.getElementById(`detected-canvas-${i}`).toDataURL()
+                                let detected_img = document.getElementById(`detected-img-${i}`)
+                                detected_img.src = dataUrl
+                                const landmarkContainer = document.getElementsByClassName('landmark-grid-container')[0];
+                                const grid = new LandmarkGrid(landmarkContainer);
+
+                                let startTime = new Date().getTime();
+                                let endTime;
+
+                                onResultFunctions[`${i}`] = function(results) {
+                                    if (!results.poseLandmarks) {
+                                        grid.updateLandmarks([]);
+                                        console.log("no person");
+                                        return;
+                                    }
+                                    let canvasElement = document.getElementById(`detected-canvas-filtered-${i}`)
+                                    let canvasCtx = canvasElement.getContext('2d');
+                                    canvasCtx.save();
+                                    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                                    canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
+                                    canvasCtx.globalCompositeOperation = 'source-in';
+                                    canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+                                    //timer
+                                    endTime = new Date().getTime();
+                                    if (endTime - startTime >= 1000) {
+                                        startTime = endTime;
+                                    }
+                                    canvasCtx.restore();
+                                    // global point 
+                                    grid.updateLandmarks(results.poseWorldLandmarks);
+                                }
+
+                                pose[`${i}`] = new Pose({
+                                    locateFile: (file) => {
+                                        return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+                                    }
+                                });
+                                pose[`${i}`].setOptions({
+                                    modelComplexity: 1,
+                                    smoothLandmarks: true,
+                                    enableSegmentation: true,
+                                    smoothSegmentation: true,
+                                    minDetectionConfidence: 0.5,
+                                    minTrackingConfidence: 0.5
+                                });
+                                // pose[`${i}`].onResults(onResultFunctions[`${i}`]);
+                                pose[`${i}`].onResults((results) => {
+                                    if (!results.poseLandmarks) {
+                                        grid.updateLandmarks([]);
+                                        console.log("no person");
+                                        return;
+                                    }
+                                    let canvasElement = document.getElementById(`detected-canvas-filtered-${i}`)
+                                    let canvasCtx = canvasElement.getContext('2d');
+                                    canvasCtx.save();
+                                    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                                    canvasCtx.drawImage(results.segmentationMask, 0, 0, canvasElement.width, canvasElement.height);
+                                    canvasCtx.globalCompositeOperation = 'source-in';
+                                    canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+                                    //timer
+                                    endTime = new Date().getTime();
+                                    if (endTime - startTime >= 1000) {
+                                        startTime = endTime;
+                                    }
+                                    canvasCtx.restore();
+                                    // global point 
+                                    grid.updateLandmarks(results.poseWorldLandmarks);
+                                })
+                                await pose[`${i}`].send({
+                                    image: detected_img
+                                })
+
                             }
-                        } else {
-                            let point1 = new cv.Point(individual_screens[i][0][0] + x_shift, individual_screens[i][0][1])
-                            let point2 = new cv.Point(individual_screens[i][0][0] + x_shift + individual_screens[i][1][0], individual_screens[i][0][1])
-                            let point3 = new cv.Point(individual_screens[i][0][0] + x_shift + individual_screens[i][1][0], individual_screens[i][0][1] + individual_screens[i][1][1])
-                            let point4 = new cv.Point(individual_screens[i][0][0] + x_shift, individual_screens[i][0][1] + individual_screens[i][1][1])
-                            cv.line(src, point1, point2, color1, 3, cv.LINE_8, 0)
-                            cv.line(src, point2, point3, color1, 3, cv.LINE_8, 0)
-                            cv.line(src, point3, point4, color1, 3, cv.LINE_8, 0)
-                            cv.line(src, point4, point1, color1, 3, cv.LINE_8, 0)
-                            cv.imshow('canvas1', src)
-
-
                         }
-
-
                     }
-
                     cv.imshow('canvas1', src)
                     cv.imshow('canvas2', dst)
                     dst.delete();
-
-
                     // let delay = 1000 / FPS - (Date.now() - begin)
                     // setTimeout(processPhoto, delay)
-                }
 
+                    // const pose = new Pose({
+                    //     locateFile: (file) => {
+                    //         return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+                    //     }
+                    // });
+                }
                 processPhoto();
+
             }
         }
     </script>
