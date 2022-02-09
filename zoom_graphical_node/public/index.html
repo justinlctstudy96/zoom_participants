@@ -377,6 +377,21 @@
                                         let startTime = new Date().getTime();
                                         let endTime;
 
+                                        const pose = new Pose({
+                                            locateFile: (file) => {
+                                                return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+                                            }
+                                        });
+                                        pose[`${i}`].setOptions({
+                                            modelComplexity: 1,
+                                            smoothLandmarks: true,
+                                            enableSegmentation: true,
+                                            smoothSegmentation: true,
+                                            minDetectionConfidence: 0.5,
+                                            minTrackingConfidence: 0.5
+                                        });
+
+
                                         function onBackgroundResult(results) {
                                             if (!results.poseLandmarks) {
                                                 grid.updateLandmarks([]);
